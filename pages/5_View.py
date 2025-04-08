@@ -83,10 +83,14 @@ with tab1:
         col1, col2 = st.columns(2)
         
         with col1:
+            # Filter qualified papers for dropdown
+            qualified_df = filtered_df[filtered_df['qualified'] == True]
             file_id = st.selectbox(
                 "Select File",
-                options=filtered_df['file_id'].tolist(),
-                format_func=lambda x: f"{x} ({filtered_df[filtered_df['file_id']==x]['status'].iloc[0]})")
+                options=qualified_df['file_id'].tolist(),
+                format_func=lambda x: qualified_df[qualified_df['file_id']==x]['title'].iloc[0] 
+                    if not pd.isna(qualified_df[qualified_df['file_id']==x]['title'].iloc[0]) 
+                    else x)
         
         if file_id:
             row = filtered_df[filtered_df['file_id'] == file_id].iloc[0]
@@ -103,7 +107,7 @@ with tab1:
                                     st.download_button(
                                         label="📄 Save PDF",
                                         data=f,
-                                        file_name=row['file_id'],
+                                        file_name=f"{row.get('title', row['file_id'])}.pdf",
                                         mime='application/pdf',
                                         key=f"save_pdf_{row['id']}"
                                     )
@@ -119,7 +123,7 @@ with tab1:
                                     st.download_button(
                                         label="📝 Save TXT",
                                         data=f,
-                                        file_name=f"{row['file_id']}.txt",
+                                        file_name=f"{row.get('title', row['file_id'])}.txt",
                                         mime='text/plain',
                                         key=f"save_txt_{row['id']}"
                                     )
