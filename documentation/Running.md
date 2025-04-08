@@ -105,11 +105,13 @@ This document provides instructions on setting up and running the Reference Craw
 - `/txt_files/`: Extracted text content from PDFs
 
 ### Processing Stages
+
 1. **Text Extraction Stage**:
-   - Reads PDF files from Firebase Storage
-   - Extracts text content using PyPDF
-   - Saves extracted text back to storage
-   - Updates status to "TextExtracted"
+   - Takes PDFs with 'Initial' status
+   - Extracts text content using PyPDF2
+   - Saves text to Firebase Storage
+   - Updates status to 'TextExtracted' on success
+   - Updates status to 'FailedProcessing' with error message on failure
 
 2. **Paper Qualification Stage**:
    - Evaluates unqualified papers with status 'TextExtracted' or 'TextProcessed'
@@ -126,34 +128,26 @@ This document provides instructions on setting up and running the Reference Craw
      - Confidence score
      - Reasoning for decision
    - Sets 'qualified' field in database (true if relevant with high confidence)
+   - Updates status to 'FailedProcessing' with error message on failure
    - Skips papers that have already been qualified
    - Papers can be qualified at any point after text extraction
 
 3. **Reference Processing Stage**:
-   - User selects number of files to process in this batch
-   - Takes files that are:
-     - Marked as qualified (qualified = true)
-     - Have status "TextExtracted"
-     - Up to the specified limit
-   - Loads extracted text from `/txt_files/{file_id}.txt`
-   - Uses OpenAI to identify references in the text
-   - Creates structured reference records in Firestore with:
-     - Full reference text
-     - Authors
-     - Title
-     - Year
-   - Updates file status to "TextProcessed"
-   - Stores reference count in file record
+   - Takes qualified papers with 'TextExtracted' status
+   - Extracts references from text content
+   - Creates reference records in database
+   - Updates paper status to 'TextProcessed' on success
+   - Updates status to 'FailedProcessing' with error message on failure
+   - Records reference count for successful processing in file record
 
-3. **Reference Crawling Stage**:
-   - User selects number of references to crawl in this batch
-   - Takes references with status "NewReference" (up to the specified limit)
-   - Uses Google Custom Search API to find PDF links
-   - For each search result:
-     - Checks if PDF URL already exists in database to avoid duplicates
-     - Downloads PDF if new and stores in Firebase Storage
-     - Creates new PDF file record with:
-       - Unique file_id (based on URL hash)
+4. **Reference Crawling Stage**:
+   - Takes references with 'NewReference' status
+   - Searches for PDFs using Google Custom Search
+   - Downloads found PDFs
+   - Creates new PDF records with 'Initial' status
+   - Updates reference status to 'ProcessedReference' on success
+   - Updates status to 'FailedProcessing' with error message on failure
+   - Continues processing even if individual downloads fail
        - Title from search results
        - Status: "Initial"
        - Incremented depth (parent depth + 1)
