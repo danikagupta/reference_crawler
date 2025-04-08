@@ -1,1 +1,2 @@
 configs/*.json.streamlit/secrets.toml
+configs/referencecrawler-firebase-adminsdk-*.json
