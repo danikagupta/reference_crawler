@@ -2,6 +2,7 @@ import streamlit as st
 import tempfile
 import requests
 import hashlib
+import datetime
 from firebase_utils import (
     db, download_pdf_from_storage, update_pdf_record,
     upload_txt_to_storage, download_txt_from_storage,
@@ -79,12 +80,17 @@ with col2:
     if qualify_button:
         # Get papers that haven't been qualified yet
         # Create a query for papers with either TextExtracted or TextProcessed status
+        # and no qualified field or qualified=None
+        papers = []
         query = db.collection('pdf_files')
         query = query.where('status', 'in', ['TextExtracted', 'TextProcessed'])
         query = query.limit(qualify_limit)
-        # Filter for unqualified papers (where qualified field doesn't exist)
-        papers = [doc for doc in query.stream() 
-                 if 'qualified' not in doc.to_dict()]
+        
+        for doc in query.stream():
+            doc_data = doc.to_dict()
+            # Include if qualified field is missing or None
+            if 'qualified' not in doc_data or doc_data['qualified'] is None:
+                papers.append(doc)
         
         st.write(f"Found {len(papers)} unqualified papers")
         
@@ -237,9 +243,9 @@ with col2:
                     continue
                 
                 try:
-                    # Download and save PDF
+                    # Download and save PDF with timeout
                     with st.spinner(f'Downloading PDF from {url}...'):
-                        response = requests.get(url)
+                        response = requests.get(url, timeout=120)  # 120 seconds timeout
                         if response.status_code == 200 and response.headers.get('content-type', '').lower() == 'application/pdf':
                             # Generate file ID from URL
                             file_id = f"{hashlib.md5(url.encode()).hexdigest()}.pdf"
@@ -264,8 +270,31 @@ with col2:
                             
                             downloaded_files.append(file_id)
                             st.success(f'Successfully downloaded and saved PDF: {file_id}')
+                except requests.Timeout:
+                    st.error(f'Timeout downloading PDF from {url} after 120 seconds')
+                    # Update reference record with timeout error
+                    error_time = datetime.datetime.now().isoformat()
+                    db.collection('references').document(doc.id).update({
+                        'failed_downloads': firestore.ArrayUnion([{
+                            'url': url,
+                            'error': 'Download timeout after 120 seconds',
+                            'timestamp': error_time
+                        }]),
+                        'updated_timestamp': firestore.SERVER_TIMESTAMP
+                    })
+                    continue
                 except Exception as e:
                     st.error(f'Error downloading PDF from {url}: {str(e)}')
+                    # Update reference record with error
+                    error_time = datetime.datetime.now().isoformat()
+                    db.collection('references').document(doc.id).update({
+                        'failed_downloads': firestore.ArrayUnion([{
+                            'url': url,
+                            'error': str(e),
+                            'timestamp': error_time
+                        }]),
+                        'updated_timestamp': firestore.SERVER_TIMESTAMP
+                    })
             
             # Update reference record
             db.collection('references').document(doc.id).update({

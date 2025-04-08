@@ -6,7 +6,13 @@ def get_firebase_app():
         return get_app()
     except ValueError:
         # Initialize Firebase if not already initialized
-        cred = credentials.Certificate('configs/referencecrawler-firebase-adminsdk-fbsvc-91aace5ec8.json')
+        import streamlit as st
+        
+        # Get Firebase config from secrets
+        firebase_config = dict(st.secrets['firebase'])
+        
+        # Create credentials from config
+        cred = credentials.Certificate(firebase_config)
         return initialize_app(cred, {'storageBucket': 'referencecrawler.firebasestorage.app'})
 
 # Get or initialize Firebase app

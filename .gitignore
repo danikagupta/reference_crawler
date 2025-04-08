@@ -1,3 +1,7 @@
 configs/*.json
 configs/referencecrawler-firebase-adminsdk-*.json
 .streamlit/secrets.toml
+*.pyc
+__pycache__
+__pycache__/*
+__pycache__/firebase_utils.cpython-313.pyc

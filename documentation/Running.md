@@ -143,11 +143,15 @@ This document provides instructions on setting up and running the Reference Craw
 4. **Reference Crawling Stage**:
    - Takes references with 'NewReference' status
    - Searches for PDFs using Google Custom Search
-   - Downloads found PDFs
+   - Downloads found PDFs (with 120-second timeout)
    - Creates new PDF records with 'Initial' status
    - Updates reference status to 'ProcessedReference' on success
-   - Updates status to 'FailedProcessing' with error message on failure
-   - Continues processing even if individual downloads fail
+   - Tracks failed downloads with timestamps and error messages
+   - Continues processing if:
+     - Download times out (after 120 seconds)
+     - URL is invalid or not accessible
+     - Content is not a valid PDF
+   - Records all failures in reference's 'failed_downloads' array
        - Title from search results
        - Status: "Initial"
        - Incremented depth (parent depth + 1)
