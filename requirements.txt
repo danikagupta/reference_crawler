@@ -1,0 +1,8 @@
+streamlit
+firebase-admin
+langchain
+langchain-openai
+openai
+tavily-python>=0.5.4
+pypdf
+langchain-google-community
