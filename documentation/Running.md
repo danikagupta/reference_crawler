@@ -40,14 +40,18 @@ This document provides instructions on setting up and running the Reference Craw
      initialize_app(cred, {'storageBucket': 'your-bucket-name.appspot.com'})
      ```
 
-## Setting Up API Keys
-1. **Configure OpenAI API**:
-   - Get your OpenAI API key from [OpenAI's website](https://platform.openai.com/)
-   - Add it to `.streamlit/secrets.toml`:
+## Configuration
+
+1. Set up API keys and Firebase credentials:
+   - Copy `.streamlit/secrets.template.toml` to `.streamlit/secrets.toml` and add your API keys:
      ```toml
      OPENAI_API_KEY = "your-openai-api-key"
-     OPENAI_API_MODEL = "gpt-4" # or your preferred model
+     GOOGLE_API_KEY = "your-google-api-key"
+     GOOGLE_CSE_ID = "your-google-cse-id"
      ```
+   - Copy `configs/firebase-config.template.json` to `configs/referencecrawler-firebase-adminsdk.json` and add your Firebase credentials
+   
+   Note: Both `.streamlit/secrets.toml` and Firebase credential files are gitignored for security.
 
 2. **Configure Tavily API**:
    - Get your Tavily API key from [Tavily's website](https://tavily.com)
