@@ -156,6 +156,7 @@ with col2:
                     'year': ref['year'],
                     'source_file': file_data['file_id'],
                     'status': 'NewReference',
+                    'depth': file_data.get('depth', 0) + 1,  # Increment depth from source paper
                     'created_timestamp': firestore.SERVER_TIMESTAMP,
                     'updated_timestamp': firestore.SERVER_TIMESTAMP
                 })
@@ -220,7 +221,7 @@ with col2:
                                 'file_id': file_id,
                                 'title': title,  # Add title from search results
                                 'status': 'Initial',
-                                'depth': reference_data.get('depth', 1) + 1,  # Increment depth
+                                'depth': reference_data.get('depth', 0) + 1,  # Use depth from reference
                                 'source_url': url,
                                 'source_reference': doc.id,  # Reference to the source reference document
                                 'created_timestamp': firestore.SERVER_TIMESTAMP,

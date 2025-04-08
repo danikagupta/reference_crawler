@@ -12,10 +12,12 @@ st.title('📊 System Statistics')
 files = list(db.collection('pdf_files').stream())
 references = list(db.collection('references').stream())
 
-# Count files by state and qualification
+# Count files by state, qualification, and depth
 total_files = len(files)
 files_by_state = {}
 files_by_qualification = {'Qualified': 0, 'Not Qualified': 0, 'To Process': 0}
+files_by_depth = {}
+max_depth = 0
 
 for file in files:
     data = file.to_dict()
@@ -31,6 +33,11 @@ for file in files:
     else:
         files_by_qualification['Not Qualified'] += 1
 
+    # Count by depth
+    depth = data.get('depth', 0)
+    max_depth = max(max_depth, depth)
+    files_by_depth[depth] = files_by_depth.get(depth, 0) + 1
+
 # Count references by state
 total_refs = len(references)
 refs_by_state = {}
@@ -42,6 +49,14 @@ for ref in references:
 # Display File Statistics
 st.header('📄 Files in System')
 st.metric('Total Files', total_files)
+
+# Display depth statistics
+if files_by_depth:
+    st.subheader('Files by Depth')
+    cols = st.columns(min(len(files_by_depth), 6))
+    for i, (depth, count) in enumerate(sorted(files_by_depth.items())):
+        with cols[i % len(cols)]:
+            st.metric(f'Depth {depth}', count)
 
 # Display qualification statistics
 st.subheader('Files by Qualification')
