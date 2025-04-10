@@ -17,7 +17,8 @@ total_files = len(files)
 files_by_state = {}
 files_by_qualification = {'Qualified': 0, 'Not Qualified': 0, 'To Process': 0}
 files_by_depth = {}
-files_by_triplet = {'ToProcess': 0, 'Processed': 0, 'ProcessedEmpty': 0, 'Failed': 0, 'Not Started': 0}
+files_by_triplet_a = {'ToProcess': 0, 'Processed': 0, 'ProcessedEmpty': 0, 'Failed': 0, 'Not Started': 0}
+files_by_triplet_b = {'ToProcess': 0, 'Processed': 0, 'ProcessedEmpty': 0, 'Failed': 0, 'Not Started': 0}
 max_depth = 0
 
 for file in files:
@@ -35,11 +36,18 @@ for file in files:
         files_by_qualification['Not Qualified'] += 1
         
     # Count by triplet_group_a state
-    triplet_status = data.get('triplet_group_a', None)
-    if triplet_status is None:
-        files_by_triplet['Not Started'] += 1
+    triplet_status_a = data.get('triplet_group_a', None)
+    if triplet_status_a is None:
+        files_by_triplet_a['Not Started'] += 1
     else:
-        files_by_triplet[triplet_status] += 1
+        files_by_triplet_a[triplet_status_a] += 1
+        
+    # Count by triplet_group_b state
+    triplet_status_b = data.get('triplet_group_b', None)
+    if triplet_status_b is None:
+        files_by_triplet_b['Not Started'] += 1
+    else:
+        files_by_triplet_b[triplet_status_b] += 1
 
     # Count by depth
     depth = data.get('depth', 0)
@@ -83,9 +91,15 @@ else:
     st.info('No files in the system yet')
 
 # Display Triplet Statistics
-st.subheader('Files by Triplet Status')
-cols = st.columns(min(len(files_by_triplet), 5))
-for i, (state, count) in enumerate(files_by_triplet.items()):
+st.subheader('Files by Triplet Group A Status')
+cols = st.columns(min(len(files_by_triplet_a), 5))
+for i, (state, count) in enumerate(files_by_triplet_a.items()):
+    with cols[i % len(cols)]:
+        st.metric(state, count)
+
+st.subheader('Files by Triplet Group B Status')
+cols = st.columns(min(len(files_by_triplet_b), 5))
+for i, (state, count) in enumerate(files_by_triplet_b.items()):
     with cols[i % len(cols)]:
         st.metric(state, count)
 

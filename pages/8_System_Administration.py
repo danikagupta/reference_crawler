@@ -9,6 +9,10 @@ def main():
     if st.button("Add Triplet_GroupA"):
         add_missing_field('pdf_files', 'triplet_group_a', 'ToProcess')
         st.success("Successfully added 'triplet_group_a' field where missing")
+    
+    if st.button("Add Triplet_GroupB"):
+        add_missing_field('pdf_files', 'triplet_group_b', 'ToProcess')
+        st.success("Successfully added 'triplet_group_b' field where missing")
 
 if __name__ == "__main__":
     main()
