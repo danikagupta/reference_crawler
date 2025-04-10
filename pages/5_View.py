@@ -38,7 +38,7 @@ def get_collection_df(collection_name):
     return pd.DataFrame(data)
 
 # Create tabs for different collections
-tab1, tab2 = st.tabs(["📄 Files", "🔗 References"])
+tab1, tab2, tab3 = st.tabs(["📄 Files", "🔗 References", "🔍 Triplets"])
 
 with tab1:
     st.header("PDF Files")
@@ -179,6 +179,51 @@ with tab2:
         st.caption(f"Showing {len(filtered_df)} of {len(refs_df)} references")
     else:
         st.info("No references found in the database")
+
+# Add triplets tab content
+with tab3:
+    st.header("Triplets Group A")
+    triplets_df = get_collection_df('triplets_group_a')
+    if triplets_df is not None:
+        # Reorder columns to show important ones first
+        cols = ['id', 'title', 'file_id', 'subject', 'predicate', 'object',
+                'created_timestamp']
+        cols = [col for col in cols if col in triplets_df.columns] + \
+               [col for col in triplets_df.columns if col not in cols]
+        triplets_df = triplets_df[cols]
+        
+        # Add filters
+        st.subheader("Filters")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            title_filter = st.multiselect(
+                "Filter by Paper Title",
+                options=sorted(triplets_df['title'].unique()),
+                default=[]
+            )
+        with col2:
+            subject_search = st.text_input("Search in Subject", "")
+        with col3:
+            object_search = st.text_input("Search in Object", "")
+        
+        # Apply filters
+        filtered_df = triplets_df
+        if title_filter:
+            filtered_df = filtered_df[filtered_df['title'].isin(title_filter)]
+        if subject_search:
+            filtered_df = filtered_df[filtered_df['subject'].str.contains(subject_search, case=False, na=False)]
+        if object_search:
+            filtered_df = filtered_df[filtered_df['object'].str.contains(object_search, case=False, na=False)]
+        
+        # Show dataframe with row numbers
+        st.dataframe(
+            filtered_df,
+            use_container_width=True,
+            hide_index=False
+        )
+        st.caption(f"Showing {len(filtered_df)} of {len(triplets_df)} triplets")
+    else:
+        st.info("No triplets found in the database")
 
 # Add refresh button at the bottom
 if st.button("🔄 Refresh Data"):

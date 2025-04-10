@@ -48,7 +48,8 @@ def add_pdf_record(file_id):
         'status': 'Initial',
         'depth': 1,
         'created_timestamp': firestore.SERVER_TIMESTAMP,
-        'updated_timestamp': firestore.SERVER_TIMESTAMP
+        'updated_timestamp': firestore.SERVER_TIMESTAMP,
+        'triplet_group_a': 'ToProcess'
     })
 
 def update_pdf_record(doc_id, updates):
@@ -67,3 +68,22 @@ def download_text_from_storage(filename):
     return blob.download_as_text()
 
 # Add more Firebase utility functions as needed
+def add_missing_field(collection_name: str, field_name: str, default_value):
+    """
+    Adds a missing field with a default value to documents in a Firestore collection.
+
+    Args:
+        collection_name (str): The name of the Firestore collection.
+        field_name (str): The name of the field to check/add.
+        default_value: The value to assign if the field is missing.
+    """
+    docs = db.collection(collection_name).stream()
+
+    for doc in docs:
+        data = doc.to_dict()
+        if field_name not in data:
+            doc_ref = db.collection(collection_name).document(doc.id)
+            doc_ref.update({field_name: default_value})
+            print(f"Updated {doc.id}: set '{field_name}' to {default_value}")
+        else:
+            print(f"Skipped {doc.id}: '{field_name}' already exists")

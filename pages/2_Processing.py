@@ -13,6 +13,8 @@ from main import extract_text_from_pdf, extract_references_from_text
 from google_search_api import search_and_get_paper_links
 from qualify_paper import qualify_paper
 from langchain_openai import ChatOpenAI
+from generate_triplet_group_a import generate_triplet_group_a
+from generate_triplet_group_a import generate_triplet_group_a
 
 st.set_page_config(
     page_title="Process Papers",
@@ -30,7 +32,7 @@ This page handles the processing pipeline for your uploaded papers:
 
 st.divider()
 # Text Extraction Section
-col1, col2 = st.columns([1, 3])
+col1, col2 = st.columns([1, 1])
 with col1:
     extract_limit = st.number_input('Number of PDFs to process', min_value=1, value=1, step=1, key='extract_limit')
 with col2:
@@ -75,8 +77,9 @@ st.divider()
 col1, col2 = st.columns([1, 3])
 with col1:
     qualify_limit = st.number_input('Number of papers to qualify', min_value=1, value=1, step=1, key='qualify_limit')
-    qualify_button = st.button('Qualify Papers')
+
 with col2:
+    qualify_button = st.button('Qualify Papers')
     if qualify_button:
         # Get papers that haven't been qualified yet
         # Create a query for papers with either TextExtracted or TextProcessed status
@@ -139,7 +142,7 @@ with col2:
 # Process References Section
 st.divider()
 
-col1, col2 = st.columns([1, 3])
+col1, col2 = st.columns([1, 1])
 with col1:
     process_limit = st.number_input('Number of files to process', min_value=1, value=1, step=1, key='process_limit')
 with col2:
@@ -207,7 +210,7 @@ with col2:
 
 # Crawl References Section
 st.divider()
-col1, col2 = st.columns([1, 3])
+col1, col2 = st.columns([1, 1])
 with col1:
     crawl_limit = st.number_input('Number of references to crawl', min_value=1, value=1, step=1, key='crawl_limit')
 with col2:
@@ -311,3 +314,80 @@ with col2:
 
 st.divider()
 
+# Triplet Group A Processing Section
+st.divider()
+col1, col2 = st.columns([1, 1])
+with col1:
+    triplet_limit = st.number_input('Number of files to process', min_value=1, value=1, step=1, key='triplet_limit')
+with col2:
+    if st.button('Triplet Group A'):
+        with st.spinner('Processing triplets...'):
+            # Get qualified papers marked for triplet processing
+            query = db.collection('pdf_files')
+            query = query.where('triplet_group_a', '==', 'ToProcess')
+            query = query.where('qualified', '==', True)
+            query = query.limit(triplet_limit)
+            papers = list(query.stream())
+            processed = 0
+
+            if papers:
+                llm = ChatOpenAI(
+                    openai_api_key=st.secrets['OPENAI_API_KEY'],
+                    model_name=st.secrets['OPENAI_API_MODEL'],
+                    temperature=0
+                )
+
+                for doc in papers:
+                    try:
+                        file_data = doc.to_dict()
+                        st.write(f"Processing triplets for: {file_data.get('title', file_data['file_id'])}")
+                        
+                        # Get the text content
+                        text_content = download_text_from_storage(file_data['file_id'])
+                        
+                        # Generate triplets
+                        triplets = generate_triplet_group_a(text_content, llm)
+                        
+                        # Only proceed if we found triplets
+                        if triplets and triplets.triplets:
+                            # Store each triplet as a separate row
+                            for triplet in triplets.triplets:
+                                db.collection('triplets_group_a').add({
+                                    'pdf_id': doc.id,
+                                    'file_id': file_data['file_id'],
+                                    'title': file_data.get('title', ''),
+                                    'subject': triplet.subject,
+                                    'predicate': triplet.predicate,
+                                    'object': triplet.object,
+                                    'created_timestamp': firestore.SERVER_TIMESTAMP
+                                })
+                            
+                            # Update the original document
+                            update_pdf_record(doc.id, {
+                                'triplet_group_a': 'Processed',
+                                'triplet_count': len(triplets.triplets),
+                                'updated_timestamp': firestore.SERVER_TIMESTAMP
+                            })
+                            
+                            processed += 1
+                        else:
+                            # No triplets found, mark as processed but empty
+                            update_pdf_record(doc.id, {
+                                'triplet_group_a': 'ProcessedEmpty',
+                                'triplet_count': 0,
+                                'updated_timestamp': firestore.SERVER_TIMESTAMP
+                            })
+                        
+                    except Exception as e:
+                        st.error(f"Error processing triplets for {file_data.get('file_id', 'unknown file')}: {str(e)}")
+                        update_pdf_record(doc.id, {
+                            'triplet_group_a': 'Failed',
+                            'triplet_error': str(e),
+                            'updated_timestamp': firestore.SERVER_TIMESTAMP
+                        })
+                        continue
+
+                if processed > 0:
+                    st.success(f'Generated triplets for {processed} document(s).')
+            else:
+                st.info('No qualified documents marked for triplet processing. Documents must be both qualified and have triplet_group_a="ToProcess".')
