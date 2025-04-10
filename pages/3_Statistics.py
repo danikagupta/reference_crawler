@@ -12,11 +12,12 @@ st.title('📊 System Statistics')
 files = list(db.collection('pdf_files').stream())
 references = list(db.collection('references').stream())
 
-# Count files by state, qualification, and depth
+# Count files by state, qualification, depth, and triplet status
 total_files = len(files)
 files_by_state = {}
 files_by_qualification = {'Qualified': 0, 'Not Qualified': 0, 'To Process': 0}
 files_by_depth = {}
+files_by_triplet = {'ToProcess': 0, 'Processed': 0, 'ProcessedEmpty': 0, 'Failed': 0, 'Not Started': 0}
 max_depth = 0
 
 for file in files:
@@ -32,6 +33,13 @@ for file in files:
         files_by_qualification['Qualified'] += 1
     else:
         files_by_qualification['Not Qualified'] += 1
+        
+    # Count by triplet_group_a state
+    triplet_status = data.get('triplet_group_a', None)
+    if triplet_status is None:
+        files_by_triplet['Not Started'] += 1
+    else:
+        files_by_triplet[triplet_status] += 1
 
     # Count by depth
     depth = data.get('depth', 0)
@@ -73,6 +81,13 @@ if files_by_state:
             st.metric(state, count)
 else:
     st.info('No files in the system yet')
+
+# Display Triplet Statistics
+st.subheader('Files by Triplet Status')
+cols = st.columns(min(len(files_by_triplet), 5))
+for i, (state, count) in enumerate(files_by_triplet.items()):
+    with cols[i % len(cols)]:
+        st.metric(state, count)
 
 # Display Reference Statistics
 st.header('🔗 References')
